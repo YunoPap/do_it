@@ -1,7 +1,10 @@
 use color_eyre::eyre::Result;
 use ratatui::{
-    crossterm::event::{self, Event}, 
-    widgets::{Paragraph, Widget},
+    crossterm::event::{self, Event},
+    layout::{Constraint, Layout},
+    prelude::Stylize,
+    style::Color,
+    widgets::{Block, BorderType, List, ListItem, Widget},
     DefaultTerminal, Frame,
 };
 
@@ -17,7 +20,19 @@ struct TodoItem {
 }
 
 fn main() -> Result<()> {
-    let mut state = AppState::default();    
+    let mut state = AppState::default();
+    state.items.push(TodoItem { 
+        is_done: false, 
+        description: String::from("Finish application"),
+    });
+    state.items.push(TodoItem { 
+        is_done: false, 
+        description: String::from("Finish application"),
+    });
+    state.items.push(TodoItem { 
+        is_done: false, 
+        description: String::from("Finish application"),
+    });
     color_eyre::install()?;
     
     let terminal = ratatui::init();
@@ -46,5 +61,24 @@ fn run(mut terminal: DefaultTerminal, app_state:&mut AppState) -> Result<()> {
 }
 
 fn render(frame: &mut Frame, app_state:&mut AppState) {
-    Paragraph::new("Hello from application").render(frame.area(), frame.buffer_mut());
+    let border_area = Layout::vertical([Constraint::Fill(1)])
+        .margin(1)
+        .split(frame.area())[0];
+    
+    let inner_area = Layout::vertical([Constraint::Fill(1)])
+        .margin(1)
+        .split(border_area)[0];
+
+    Block::bordered()
+        .border_type(BorderType::Rounded)
+        .fg(Color::Yellow)
+        .render(border_area, frame.buffer_mut());
+
+    List::new(
+        app_state 
+        .items
+        .iter()
+        .map(|x| ListItem::from(x.description.clone()))
+    )
+    .render(inner_area, frame.buffer_mut());
 }
