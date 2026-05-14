@@ -3,6 +3,9 @@ use ratatui::{
     DefaultTerminal, Frame, crossterm::event::{self, Event, KeyEvent}, layout::{Constraint, Layout}, prelude::Stylize, style::{Color, Style}, text::ToSpan, widgets::{Block, BorderType, List, ListItem, ListState, Padding, Paragraph, Widget}
 };
 
+// Represents the overall state of the 
+// application, including the list of to-do 
+// items, the current selection, and whether the input form is active
 #[derive(Debug, Default)]
 struct AppState {
     items: Vec<TodoItem>,
@@ -11,6 +14,7 @@ struct AppState {
     input_value: String,
 }
 
+// Represents a single to-do item with its description and completion status
 #[derive(Debug, Default)]
 struct TodoItem {
     #[allow(dead_code)]
@@ -18,12 +22,14 @@ struct TodoItem {
     description: String, 
 }
 
+// Represents the possible actions that can be taken in the input form
 enum FormAction {
     None,
     Submit,
     Escape,
 }
 
+// Entry point of the application
 fn main() -> Result<()> {
     let mut state = AppState::default();
     state.is_add_new = false;
@@ -36,6 +42,7 @@ fn main() -> Result<()> {
     result
 }
 
+// Main application loop
 fn run(mut terminal: DefaultTerminal, app_state: &mut AppState) -> Result<()> {
     loop {
         // Rendering
@@ -70,6 +77,7 @@ fn run(mut terminal: DefaultTerminal, app_state: &mut AppState) -> Result<()> {
     Ok(())
 }
 
+// Handle input when adding a new item
 fn handle_add_new(key: KeyEvent, app_state: &mut AppState) -> FormAction {
     match key.code {
         event::KeyCode::Char(c) => {
@@ -89,6 +97,7 @@ fn handle_add_new(key: KeyEvent, app_state: &mut AppState) -> FormAction {
     FormAction::None
 }
 
+// Handle input when navigating the list or toggling items
 fn handle_key(key: event::KeyEvent, app_state: &mut AppState) -> bool {
     match key.code {
         event::KeyCode::Enter => {
@@ -124,6 +133,7 @@ fn handle_key(key: event::KeyEvent, app_state: &mut AppState) -> bool {
     }
 }
 
+// Render the UI based on the current state
 fn render(frame: &mut Frame, app_state: &mut AppState) {
     let border_area = Layout::vertical([Constraint::Fill(1)])
         .margin(1)
@@ -136,6 +146,7 @@ fn render(frame: &mut Frame, app_state: &mut AppState) {
     }
 }
 
+// Render the list of to-do items
 fn render_list(
     border_area: ratatui::prelude::Rect,
     frame: &mut Frame<'_>,
@@ -165,6 +176,7 @@ fn render_list(
     frame.render_stateful_widget(list, inner_area, &mut app_state.list_state);
 }
 
+// Render the input form for adding a new to-do item
 fn render_input_form (
     border_area: ratatui::prelude::Rect,
     frame: &mut Frame<'_>,
