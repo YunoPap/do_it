@@ -1,7 +1,11 @@
 use color_eyre::eyre::Result;
+use ratatui::crossterm::style::ContentStyle;
 use ratatui::{
     DefaultTerminal, Frame, crossterm::event::{self, Event, KeyEvent}, layout::{Constraint, Layout}, prelude::Stylize, style::{Color, Style}, text::ToSpan, widgets::{Block, BorderType, List, ListItem, ListState, Padding, Paragraph, Widget}
 };
+use serde::{Deserialize, Serialize};
+use std::fs::File;
+use std::io::{Read, Write};
 
 // Represents the overall state of the 
 // application, including the list of to-do 
@@ -15,7 +19,7 @@ struct AppState {
 }
 
 // Represents a single to-do item with its description and completion status
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 struct TodoItem {
     #[allow(dead_code)]
     is_done: bool, 
@@ -28,6 +32,8 @@ enum FormAction {
     Submit,
     Escape,
 }
+
+const SAVE_FILE: &str = "todos.json";
 
 // Entry point of the application
 fn main() -> Result<()> {
@@ -192,3 +198,17 @@ fn render_input_form (
         )
         .render(border_area, frame.buffer_mut());
 }
+
+fn load_todos() -> Vec<TodoItem> {
+    let mut file = match File::open(SAVE_FILE) {
+        Ok(f) => f,
+        Err(_) => return Vec::new()
+    };
+    
+    let mut contents = String::new();
+    if file.read_to_string(&mut contents).is_ok() {
+        serde_json::from_str(&contents).unwrap_or_else(|_| Vec::new())
+    } else {
+        Vec::new()
+    }
+} 
