@@ -1,0 +1,5 @@
+# Ignore the compilation/build artifacts
+/target/
+
+# Ignore your personal local to-do file
+todos.json

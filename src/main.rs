@@ -6,16 +6,35 @@ use ratatui::{
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::{Read, Write};
+use chrono::{DateTime, TimeZone, Utc};
+use chrono_tz::Tz;
 
 // Represents the overall state of the 
 // application, including the list of to-do 
 // items, the current selection, and whether the input form is active
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct AppState {
     items: Vec<TodoItem>,
     list_state: ListState,
     is_add_new: bool,
     input_value: String,
+    current_date: DateTime<Tz>,
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        // Time Zone
+        let est = Tz::America__New_York;
+        let current_time = Utc::now().with_timezone(&est);
+       
+        Self {
+            items: Vec::new(),
+            list_state: ListState::default(),
+            is_add_new: false,
+            input_value: String::new(),
+            current_date: current_time,           
+        }
+    }
 }
 
 // Represents a single to-do item with its description and completion status
@@ -39,12 +58,24 @@ const SAVE_FILE: &str = "todos.json";
 fn main() -> Result<()> {
     let mut state = AppState::default();
     state.is_add_new = false;
+     
+    // Save State
+    state.items = load_todos();
+    
+    if !state.items.is_empty() {
+        state.list_state.select(Some(0));
+    }
+    
     color_eyre::install()?;
     
     let terminal = ratatui::init();
     let result = run(terminal, &mut state);
     
     ratatui::restore();
+    
+    if result.is_ok() {
+        save_todos(&state.items)?;
+    }
     result
 }
 
@@ -123,6 +154,12 @@ fn handle_key(key: event::KeyEvent, app_state: &mut AppState) -> bool {
                 'D' => {
                     if let Some(index) = app_state.list_state.selected() {
                         app_state.items.remove(index);
+                        
+                        if app_state.items.is_empty() {
+                            app_state.list_state.select(None);
+                        } else if index >= app_state.items.len() {
+                            app_state.list_state.select(Some(app_state.items.len() - 1));
+                        }
                     }
                 }
                 'k' => {
@@ -158,6 +195,8 @@ fn render_list(
     frame: &mut Frame<'_>,
     app_state: &mut AppState,
 ) {
+    let the_time = app_state.current_date.format("%Y-%m-%d").to_string();
+    
     let inner_area = Layout::vertical([Constraint::Fill(1)])
         .margin(1)
         .split(border_area)[0];
@@ -165,6 +204,7 @@ fn render_list(
     Block::bordered()
         .border_type(BorderType::Rounded)
         .title("Do_It!".to_span().into_left_aligned_line())
+        .title(the_time.to_span().into_right_aligned_line())
         .fg(Color::Yellow)
         .render(border_area, frame.buffer_mut());
 
@@ -212,3 +252,10 @@ fn load_todos() -> Vec<TodoItem> {
         Vec::new()
     }
 } 
+
+fn save_todos(items: &[TodoItem]) -> Result<()> {
+    let mut file = File::create(SAVE_FILE)?;
+    let json = serde_json::to_string_pretty(items)?;
+    file.write_all(json.as_bytes())?;
+    Ok(())
+}
