@@ -6,7 +6,7 @@ use ratatui::{
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::{Read, Write};
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, TimeDelta, TimeZone, Utc};
 use chrono_tz::Tz;
 
 // Represents the overall state of the 
@@ -26,23 +26,32 @@ impl Default for AppState {
         // Time Zone
         let est = Tz::America__New_York;
         let current_time = Utc::now().with_timezone(&est);
-       
+      
         Self {
             items: Vec::new(),
             list_state: ListState::default(),
             is_add_new: false,
             input_value: String::new(),
-            current_date: current_time,           
+            current_date: current_time, 
         }
     }
 }
 
+impl AppState {
+    pub fn next_day(&mut self) {
+        self.current_date = self.current_date + TimeDelta::days(1);
+    }
+    pub fn prev_day(&mut self) {
+        self.current_date = self.current_date + TimeDelta::days(-1);
+    }
+}
 // Represents a single to-do item with its description and completion status
 #[derive(Debug, Default, Serialize, Deserialize)]
 struct TodoItem {
     #[allow(dead_code)]
     is_done: bool, 
     description: String, 
+    date: DateTime<Tz>,
 }
 
 // Represents the possible actions that can be taken in the input form
@@ -92,7 +101,8 @@ fn run(mut terminal: DefaultTerminal, app_state: &mut AppState) -> Result<()> {
                     FormAction::Submit => {
                         app_state.items.push(TodoItem {
                             is_done: false,
-                            description: app_state.input_value.clone()
+                            description: app_state.input_value.clone(),
+                            date: app_state.current_date,
                         });
                         app_state.input_value.clear();
                         app_state.is_add_new = false;
@@ -167,6 +177,12 @@ fn handle_key(key: event::KeyEvent, app_state: &mut AppState) -> bool {
                 }
                 'j' => {
                     app_state.list_state.select_next();
+                }
+                'h' => {
+                    app_state.prev_day();
+                }
+                'l' => {
+                    app_state.next_day();
                 }
                 _ => {}
             }

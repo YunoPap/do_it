@@ -1,12 +1,5 @@
-   0.109039744s  INFO prepare_target{force=false package_id=do_it v0.1.0 (/var/home/yuno/dev/doIt/do_it) target="do_it"}: cargo::core::compiler::fingerprint: stale: changed "/var/home/yuno/dev/doIt/do_it/src/main.rs"
-   0.109057748s  INFO prepare_target{force=false package_id=do_it v0.1.0 (/var/home/yuno/dev/doIt/do_it) target="do_it"}: cargo::core::compiler::fingerprint:           (vs) "/var/home/yuno/dev/doIt/do_it/target/debug/.fingerprint/do_it-926868d326eb8179/dep-bin-do_it"
-   0.109063378s  INFO prepare_target{force=false package_id=do_it v0.1.0 (/var/home/yuno/dev/doIt/do_it) target="do_it"}: cargo::core::compiler::fingerprint:                FileTime { seconds: 1779554461, nanos: 84560817 } < FileTime { seconds: 1779554461, nanos: 509560168 }
-   0.109222798s  INFO prepare_target{force=false package_id=do_it v0.1.0 (/var/home/yuno/dev/doIt/do_it) target="do_it"}: cargo::core::compiler::fingerprint: fingerprint dirty for do_it v0.1.0 (/var/home/yuno/dev/doIt/do_it)/Check { test: false }/TargetInner { name: "do_it", doc: true, ..: with_path("/var/home/yuno/dev/doIt/do_it/src/main.rs", Edition2024) }
-   0.109235371s  INFO prepare_target{force=false package_id=do_it v0.1.0 (/var/home/yuno/dev/doIt/do_it) target="do_it"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleItem(ChangedFile { reference: "/var/home/yuno/dev/doIt/do_it/target/debug/.fingerprint/do_it-926868d326eb8179/dep-bin-do_it", reference_mtime: FileTime { seconds: 1779554461, nanos: 84560817 }, stale: "/var/home/yuno/dev/doIt/do_it/src/main.rs", stale_mtime: FileTime { seconds: 1779554461, nanos: 509560168 } }))
-   0.120706027s  INFO prepare_target{force=false package_id=do_it v0.1.0 (/var/home/yuno/dev/doIt/do_it) target="do_it"}: cargo::core::compiler::fingerprint: stale: changed "/var/home/yuno/dev/doIt/do_it/src/main.rs"
-   0.120718139s  INFO prepare_target{force=false package_id=do_it v0.1.0 (/var/home/yuno/dev/doIt/do_it) target="do_it"}: cargo::core::compiler::fingerprint:           (vs) "/var/home/yuno/dev/doIt/do_it/target/debug/.fingerprint/do_it-9994a9fa63c99029/dep-test-bin-do_it"
-   0.120723670s  INFO prepare_target{force=false package_id=do_it v0.1.0 (/var/home/yuno/dev/doIt/do_it) target="do_it"}: cargo::core::compiler::fingerprint:                FileTime { seconds: 1779554461, nanos: 84560817 } < FileTime { seconds: 1779554461, nanos: 509560168 }
-   0.120779394s  INFO prepare_target{force=false package_id=do_it v0.1.0 (/var/home/yuno/dev/doIt/do_it) target="do_it"}: cargo::core::compiler::fingerprint: fingerprint dirty for do_it v0.1.0 (/var/home/yuno/dev/doIt/do_it)/Check { test: true }/TargetInner { name: "do_it", doc: true, ..: with_path("/var/home/yuno/dev/doIt/do_it/src/main.rs", Edition2024) }
-   0.120790786s  INFO prepare_target{force=false package_id=do_it v0.1.0 (/var/home/yuno/dev/doIt/do_it) target="do_it"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleItem(ChangedFile { reference: "/var/home/yuno/dev/doIt/do_it/target/debug/.fingerprint/do_it-9994a9fa63c99029/dep-test-bin-do_it", reference_mtime: FileTime { seconds: 1779554461, nanos: 84560817 }, stale: "/var/home/yuno/dev/doIt/do_it/src/main.rs", stale_mtime: FileTime { seconds: 1779554461, nanos: 509560168 } }))
-    Checking do_it v0.1.0 (/var/home/yuno/dev/doIt/do_it)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.28s
+error: duplicate key
+  --> Cargo.toml:16:1
+   |
+16 | serde = { version = "1.0", features = ["derive"] }
+   | ^^^^^
