@@ -259,14 +259,13 @@ fn render_list(
         .filter(|item| {
             let item_day = item.date.date_naive();
             let current_view_day = app_state.current_date.date_naive();
+            let real_today = chrono::Utc::now().with_timezone(&chrono_tz::Tz::America__New_York).date_naive();
             
-            if item_day == current_view_day {
-                true
-            } else if !item.is_done && item_day < current_view_day {
-                true
-            } else {
-                false
-            }
+            let is_same_day = item_day == current_view_day;
+            let is_past_incomplete = !item.is_done && item_day < current_view_day;
+            let is_viewing_future = current_view_day > real_today;
+            
+            is_same_day || (is_past_incomplete && !is_viewing_future)
         })
         .map(|x| {
         let value = if x.is_done {
