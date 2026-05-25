@@ -1,9 +1,10 @@
 use color_eyre::eyre::Result;
+use color_eyre::owo_colors::colors::xterm::FrenchPassLightBlue;
 use ratatui::crossterm::style::ContentStyle;
 use ratatui::{
     DefaultTerminal, Frame, crossterm::event::{self, Event, KeyEvent}, layout::{Constraint, Layout}, prelude::Stylize, style::{Color, Style}, text::ToSpan, widgets::{Block, BorderType, List, ListItem, ListState, Padding, Paragraph, Widget}
 };
-use serde::{Deserialize, Serialize, Deserializer, Serializer};
+use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::{Read, Write};
 use chrono::{DateTime, TimeDelta, TimeZone, Utc};
@@ -46,43 +47,12 @@ impl AppState {
     }
 }
 // Represents a single to-do item with its description and completion status
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 struct TodoItem {
-    pub is_done: bool, 
-    pub description: String, 
-    
-    #[serde(with="ts_rw")]
-    pub date: DateTime<Tz>,
-}
-mod ts_rw {
-    use super::*;
-
-    // 1. How to SAVE the date to JSON
-    pub fn serialize<S>(date: &DateTime<Tz>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        // Convert to a regular UTC timestamp number
-        serializer.serialize_i64(date.timestamp_millis())
-    }
-
-    // 2. How to LOAD the date from JSON
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Tz>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let millis = i64::deserialize(deserializer)?;
-        
-        // Hardcode your default system timezone format to match your AppState
-        let tz = Tz::America__New_York; 
-        
-        // Reconstruct the DateTime wrapper using the timezone
-        let datetime_utc = Utc.timestamp_millis_opt(millis)
-            .single()
-            .ok_or_else(|| serde::de::Error::custom("Invalid timestamp"))?;
-            
-        Ok(datetime_utc.with_timezone(&tz))
-    }
+    #[allow(dead_code)]
+    is_done: bool, 
+    description: String, 
+    date: DateTime<Tz>,
 }
 
 // Represents the possible actions that can be taken in the input form
@@ -257,10 +227,10 @@ fn render_list(
 
     let list = List::new(app_state.items.iter()
         .filter(|item| {
-            let item_day = item.date.date_naive();
-            let current_view_day = app_state.current_date.date_naive();
+            let item_extract = item.date.date_native();
+            let app_date_extract = app_state.current_date.date_naive();
             
-            if item_day == current_view_day {
+            if item_extract == current_view_day {
                 true
             } else if !item.is_done && item_day < current_view_day {
                 true

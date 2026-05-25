@@ -1,5 +1,0 @@
-error: duplicate key
-  --> Cargo.toml:16:1
-   |
-16 | serde = { version = "1.0", features = ["derive"] }
-   | ^^^^^
