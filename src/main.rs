@@ -1,120 +1,45 @@
+pub mod app;
+pub mod ui;
+
 use color_eyre::eyre::Result;
 use ratatui::crossterm::style::ContentStyle;
 use ratatui::{
-    DefaultTerminal, Frame, crossterm::event::{self, Event, KeyEvent}, layout::{Constraint, Layout}, prelude::Stylize, style::{Color, Style}, text::ToSpan, widgets::{Block, BorderType, List, ListItem, ListState, Padding, Paragraph, Widget}
+    DefaultTerminal, Frame, 
+    crossterm::event::{self, Event, KeyEvent}, 
+    layout::{Constraint, Layout}, prelude::Stylize, style::{Color, Style}, text::ToSpan, 
+    widgets::{Block, BorderType, List, ListItem, ListState, Padding, Paragraph, Widget}
 };
 use serde::{Deserialize, Serialize, Deserializer, Serializer};
 use std::fs::File;
 use std::io::{Read, Write};
 use chrono::{DateTime, TimeDelta, TimeZone, Utc};
 use chrono_tz::Tz;
+use app::{AppState, TodoItem, CurrentScreen, FormAction};
 
-// Represents the overall state of the 
-// application, including the list of to-do 
-// items, the current selection, and whether the input form is active
-#[derive(Debug)]
-struct AppState {
-    items: Vec<TodoItem>,
-    list_state: ListState,
-    is_add_new: bool,
-    input_value: String,
-    current_date: DateTime<Tz>,
-}
-
-impl Default for AppState {
-    fn default() -> Self {
-        // Time Zone
-        let est = Tz::America__New_York;
-        let current_time = Utc::now().with_timezone(&est);
-      
-        Self {
-            items: Vec::new(),
-            list_state: ListState::default(),
-            is_add_new: false,
-            input_value: String::new(),
-            current_date: current_time, 
-        }
-    }
-}
-
-impl AppState {
-    pub fn next_day(&mut self) {
-        self.current_date = self.current_date + TimeDelta::days(1);
-    }
-    pub fn prev_day(&mut self) {
-        self.current_date = self.current_date + TimeDelta::days(-1);
-    }
-}
-// Represents a single to-do item with its description and completion status
-#[derive(Debug, Serialize, Deserialize)]
-struct TodoItem {
-    pub is_done: bool, 
-    pub description: String, 
-    
-    #[serde(with="ts_rw")]
-    pub date: DateTime<Tz>,
-}
-mod ts_rw {
-    use super::*;
-
-    // 1. How to SAVE the date to JSON
-    pub fn serialize<S>(date: &DateTime<Tz>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        // Convert to a regular UTC timestamp number
-        serializer.serialize_i64(date.timestamp_millis())
-    }
-
-    // 2. How to LOAD the date from JSON
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Tz>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let millis = i64::deserialize(deserializer)?;
-        
-        // Hardcode your default system timezone format to match your AppState
-        let tz = Tz::America__New_York; 
-        
-        // Reconstruct the DateTime wrapper using the timezone
-        let datetime_utc = Utc.timestamp_millis_opt(millis)
-            .single()
-            .ok_or_else(|| serde::de::Error::custom("Invalid timestamp"))?;
-            
-        Ok(datetime_utc.with_timezone(&tz))
-    }
-}
-
-// Represents the possible actions that can be taken in the input form
-enum FormAction {
-    None,
-    Submit,
-    Escape,
-}
 
 const SAVE_FILE: &str = "todos.json";
 
 // Entry point of the application
 fn main() -> Result<()> {
-    let mut state = AppState::default();
-    state.is_add_new = false;
+    let mut app_state = app::AppState::default();
+    app_state.is_add_new = false;
      
-    // Save State
-    state.items = load_todos();
+    // Save app_state
+    app_state.items = load_todos();
     
-    if !state.items.is_empty() {
-        state.list_state.select(Some(0));
+    if !app_state.items.is_empty() {
+        app_state.list_state.select(Some(0));
     }
     
     color_eyre::install()?;
     
     let terminal = ratatui::init();
-    let result = run(terminal, &mut state);
+    let result = run(terminal, &mut app_state);
     
     ratatui::restore();
     
     if result.is_ok() {
-        save_todos(&state.items)?;
+        save_todos(&app_state.items)?;
     }
     result
 }
@@ -123,11 +48,17 @@ fn main() -> Result<()> {
 fn run(mut terminal: DefaultTerminal, app_state: &mut AppState) -> Result<()> {
     loop {
         // Rendering
-        terminal.draw(|f| render(f, app_state))?;
+        terminal.draw(|f| ui::render(f, app_state))?;
         // Input handling
         if let Event::Key(key) = event::read()? {
-            if app_state.is_add_new {
-                match handle_add_new(key, app_state){
+            if app_state.current_screen == CurrentScreen::MainMenu {
+                match key.code {
+                    event::KeyCode::Char('1') => app_state.current_screen = CurrentScreen::TaskView,
+                    event::KeyCode::Char('4') |  event::KeyCode::Esc => break,
+                    _=> {}
+                }
+            } else if app_state.is_add_new {
+                match handle_add_new(key, app_state) {
                     FormAction::None => {},
                     FormAction::Submit => {
                         app_state.items.push(TodoItem {
@@ -143,15 +74,14 @@ fn run(mut terminal: DefaultTerminal, app_state: &mut AppState) -> Result<()> {
                         app_state.input_value.clear();
                     }
                 }
-            } else{
+            } else {
                 if handle_key(key, app_state) {
-                    break;
+                    app_state.current_screen = CurrentScreen::MainMenu;
                 }
             }
             
         }
     }
-
     Ok(())
 }
 
@@ -223,64 +153,10 @@ fn handle_key(key: event::KeyEvent, app_state: &mut AppState) -> bool {
     }
 }
 
-// Render the UI based on the current state
-fn render(frame: &mut Frame, app_state: &mut AppState) {
-    let border_area = Layout::vertical([Constraint::Fill(1)])
-        .margin(1)
-        .split(frame.area())[0];
+// Render the UI based on the current app_state
 
-    if app_state.is_add_new {
-        render_input_form(border_area, frame, app_state);
-    }else {
-        render_list(border_area, frame, app_state);
-    }
-}
 
 // Render the list of to-do items
-fn render_list(
-    border_area: ratatui::prelude::Rect,
-    frame: &mut Frame<'_>,
-    app_state: &mut AppState,
-) {
-    let the_time = app_state.current_date.format("%Y-%m-%d").to_string();
-    
-    let inner_area = Layout::vertical([Constraint::Fill(1)])
-        .margin(1)
-        .split(border_area)[0];
-
-    Block::bordered()
-        .border_type(BorderType::Rounded)
-        .title("Do_It!".to_span().into_left_aligned_line())
-        .title(the_time.to_span().into_right_aligned_line())
-        .fg(Color::Yellow)
-        .render(border_area, frame.buffer_mut());
-
-    let list = List::new(app_state.items.iter()
-        .filter(|item| {
-            let item_day = item.date.date_naive();
-            let current_view_day = app_state.current_date.date_naive();
-            let real_today = chrono::Utc::now().with_timezone(&chrono_tz::Tz::America__New_York).date_naive();
-            
-            let is_same_day = item_day == current_view_day;
-            let is_past_incomplete = !item.is_done && item_day < current_view_day;
-            let is_viewing_future = current_view_day > real_today;
-            
-            is_same_day || (is_past_incomplete && !is_viewing_future)
-        })
-        .map(|x| {
-        let value = if x.is_done {
-            x.description.to_span().crossed_out()
-        } else {
-            x.description.to_span()
-             };
-             ListItem::from(value)
-        }))
-    .highlight_symbol(">")
-    .highlight_style(Style::default().fg(Color::Green));
-    
-    frame.render_stateful_widget(list, inner_area, &mut app_state.list_state);
-}
-
 // Render the input form for adding a new to-do item
 fn render_input_form (
     border_area: ratatui::prelude::Rect,
