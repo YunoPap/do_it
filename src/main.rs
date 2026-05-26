@@ -2,18 +2,14 @@ pub mod app;
 pub mod ui;
 
 use color_eyre::eyre::Result;
-use ratatui::crossterm::style::ContentStyle;
 use ratatui::{
     DefaultTerminal, Frame, 
     crossterm::event::{self, Event, KeyEvent}, 
-    layout::{Constraint, Layout}, prelude::Stylize, style::{Color, Style}, text::ToSpan, 
-    widgets::{Block, BorderType, List, ListItem, ListState, Padding, Paragraph, Widget}
+    prelude::Stylize, style::{Color}, text::ToSpan, 
+    widgets::{Block, BorderType, Padding, Paragraph, Widget}
 };
-use serde::{Deserialize, Serialize, Deserializer, Serializer};
 use std::fs::File;
 use std::io::{Read, Write};
-use chrono::{DateTime, TimeDelta, TimeZone, Utc};
-use chrono_tz::Tz;
 use app::{AppState, TodoItem, CurrentScreen, FormAction};
 
 
